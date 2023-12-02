@@ -23,7 +23,7 @@ var digitTokens = map[string]string{
 }
 
 func main() {
-	lines, err := util.ReadFileToStringSlice("/Users/abakker/Code/aoc2023/days/1/input.txt")
+	lines, err := util.ReadFileToStringSlice("/Users/abakker/Code/aoc2023/days/01_Trebuchet/input.txt")
 	if err != nil {
 		panic(err)
 	}
