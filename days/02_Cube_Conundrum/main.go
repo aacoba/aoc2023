@@ -17,6 +17,7 @@ func main() {
 		panic(err)
 	}
 	validSum := 0
+	powerSum := 0
 	parsedGames := make([]GameInfo, 0, len(lines))
 	for _, l := range lines {
 		parsed, err := parseLine(l)
@@ -30,8 +31,10 @@ func main() {
 		} else {
 			//fmt.Printf("Invalid game %v\n", parsedGames)
 		}
+		powerSum += powerCubes(parsed)
 	}
 	fmt.Printf("Sum of valid gameIds %v\n", validSum)
+	fmt.Printf("Powersum %v\n", powerSum)
 }
 
 func isValidGame(g GameInfo) bool {
@@ -64,6 +67,7 @@ func powerCubes(g GameInfo) int {
 			minBlue = s.BlueCount
 		}
 	}
+	return minRed * minGreen * minBlue
 }
 
 type GameInfo struct {
