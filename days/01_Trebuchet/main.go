@@ -79,7 +79,6 @@ func getWordDigit(b []byte) string {
 		}
 	}
 	return ""
-
 }
 
 func FancyScannerGetFirstAndLastDigits(s string) (int, error) {
@@ -105,36 +104,4 @@ func ScanStringForDigitTokens(s string) ([]string, error) {
 		return nil, fmt.Errorf("error reading file, %w", err)
 	}
 	return output, nil
-}
-
-func GetFirstAndLastDigit(s string) (int, error) {
-	first, err := ScanFirstDigit(s)
-	if err != nil {
-		return 0, fmt.Errorf("cant get first digit %w", err)
-	}
-	last, err := ScanLastDigit(s)
-	if err != nil {
-		return 0, fmt.Errorf("cant get last digit %w", err)
-	}
-	return strconv.Atoi(fmt.Sprintf("%s%s", first, last))
-}
-
-func ScanFirstDigit(s string) (string, error) {
-	for _, c := range []rune(s) {
-		if unicode.IsDigit(c) {
-			return string(c), nil
-		}
-	}
-	return "", fmt.Errorf("no digit found")
-}
-
-func ScanLastDigit(s string) (string, error) {
-	runes := []rune(s)
-	for idx, _ := range runes {
-		c := runes[len(runes)-1-idx]
-		if unicode.IsDigit(c) {
-			return string(c), nil
-		}
-	}
-	return "", fmt.Errorf("no digit found")
 }
