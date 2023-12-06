@@ -5,44 +5,139 @@ import (
 	"gitlab.com/auke/aoc2023/util"
 	"strconv"
 	"unicode"
-	"unicode/utf8"
 )
-
-var dotRune, _ = utf8.DecodeRuneInString(".")
 
 func main() {
 	lines, err := util.ReadFileToStringSlice("/Users/abakker/Code/aoc2023/days/03_Gear_Ratios/input.txt")
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Sum %d\n", ScanGearRatios(lines))
 
-	numberBoxes := make([]box, 0)
-	for idx, l := range lines {
-		numberBoxes = append(numberBoxes, GetNumberBoxes(l, idx)...)
+}
+
+func ScanGearRatios(lines []string) int {
+	lineMap := make(map[int][]rune, len(lines))
+	for idx, line := range lines {
+		lineMap[idx] = []rune(line)
 	}
 
-	boxesWithSymbolNeighbor := make([]box, 0)
 	sum := 0
 
-	for _, numberBox := range numberBoxes {
-		content, err := getBoxContent(lines, numberBox)
-		if err != nil {
-			panic(fmt.Errorf("cant get value of box %v, %w", numberBox, err))
+	gears := GetGears(lines)
+	for _, gear := range gears {
+		numbers := make([]string, 0)
+		prevLine, prevLineExists := lineMap[gear.line-1]
+		if prevLineExists {
+			numbers = append(numbers, ScanLineForNumbers(prevLine, gear.char)...)
 		}
-		if hasSymbolNeighbor(lines, numberBox) {
-			boxesWithSymbolNeighbor = append(boxesWithSymbolNeighbor, numberBox)
-			val, err := strconv.Atoi(content)
+
+		numbers = append(numbers, ScanLineForNumbers(lineMap[gear.line], gear.char)...)
+		nextLine, nextLineExists := lineMap[gear.line+1]
+		if nextLineExists {
+			numbers = append(numbers, ScanLineForNumbers(nextLine, gear.char)...)
+		}
+
+		if len(numbers) == 2 {
+			val1, err := strconv.Atoi(numbers[0])
 			if err != nil {
-				panic(fmt.Errorf("box content could not be converted to number %v, %w", content, err))
+				panic(err)
 			}
-			sum += val
-			fmt.Printf("True! %v\n", content)
-		} else {
-			fmt.Printf("False! %v\n", content)
+			val2, err := strconv.Atoi(numbers[1])
+			if err != nil {
+				panic(err)
+			}
+			sum += val1 * val2
 		}
 	}
+	return sum
+}
 
-	fmt.Printf("Sum: %d", sum)
+func ScanLineForNumbers(line []rune, position int) []string {
+	scanPosition := position - 1
+
+	numbers := make([]string, 0)
+	for {
+		if scanPosition-position > 1 {
+			break
+		}
+		res := ScanLineForNumberAtPosition(line, scanPosition)
+		if len(res) > 0 {
+			numbers = append(numbers, string(res))
+			scanPosition += 2
+		} else {
+			scanPosition += 1
+		}
+	}
+	return numbers
+}
+
+func ScanLineForNumberAtPosition(line []rune, position int) []rune {
+	if len(line) < 1 {
+		return nil
+	}
+
+	if position < 0 || position > len(line) {
+		return nil
+	}
+	result := make([]rune, 0)
+
+	// Scan backwards, if result > 0, invert result
+	// then scan forward at position+1
+
+	backwardResult := ScanLine(line, position, true)
+	// Nothing found, also at position
+	if len(backwardResult) < 1 {
+		return nil
+	}
+	// append to result in reverse order
+	for idx := range backwardResult {
+		result = append(result, backwardResult[len(backwardResult)-1-idx])
+	}
+	forwardResult := ScanLine(line, position+1, false)
+	result = append(result, forwardResult...)
+
+	return result
+}
+
+func ScanLine(line []rune, position int, backwards bool) []rune {
+	result := make([]rune, 0)
+	if position > len(line)-1 || position < 0 {
+		return nil
+	}
+	val := line[position]
+	if unicode.IsDigit(val) {
+		result = append(result, val)
+		nextPosition := position + scanDirection(backwards)
+		x := ScanLine(line, nextPosition, backwards)
+		if len(x) > 0 {
+			result = append(result, x...)
+		}
+	}
+	return result
+}
+
+func scanDirection(b bool) int {
+	if b {
+		return -1
+	} else {
+		return 1
+	}
+}
+
+func GetGears(lines []string) []coordinate {
+	coordinates := make([]coordinate, 0)
+	for lidx, line := range lines {
+		for cidx, r := range line {
+			if r == '*' {
+				coordinates = append(coordinates, coordinate{
+					line: lidx,
+					char: cidx,
+				})
+			}
+		}
+	}
+	return coordinates
 }
 
 func hasSymbolNeighbor(lines []string, b box) bool {
@@ -54,7 +149,6 @@ func hasSymbolNeighbor(lines []string, b box) bool {
 	}
 	return false
 }
-
 func getBoxContent(lines []string, b box) (string, error) {
 	// let's assume we only have single line boxes now
 	firstChar := min(b.c1.char, b.c2.char)
@@ -70,6 +164,7 @@ func getBoxContent(lines []string, b box) (string, error) {
 	}
 	return string(output), nil
 }
+
 func getValueAtCoordinate(lines []string, c coordinate) (rune, error) {
 	// if we ever get negatives, remove this
 	if c.line < 0 {
@@ -96,7 +191,6 @@ func CheckIfSymbolAtCoordinate(lines []string, c coordinate) bool {
 	}
 	return IsSymbol(val)
 }
-
 func GetNumberBoxes(line string, lineId int) []box {
 	digitBoxes := make([]box, 0)
 	start := -1
@@ -136,6 +230,11 @@ func IsSymbol(r rune) bool {
 type coordinate struct {
 	line int
 	char int
+}
+
+func (c coordinate) GetNeighbors() []coordinate {
+	b := box{c1: c, c2: c}
+	return b.GetNeighborCoordinates()
 }
 
 type box struct {
